@@ -1,0 +1,20 @@
+# MinIO Python client — reads/writes files to MinIO (S3-compatible)
+minio==7.2.7
+
+# Data manipulation — Silver layer cleaning
+pandas==2.2.2
+
+# In-process SQL engine — queries Parquet directly, no DB server needed
+duckdb==0.10.2
+
+# Data quality framework — gates between Bronze→Silver and Silver→Gold
+great-expectations==0.18.15
+
+# HTTP client — hits Open-Meteo API for Bronze ingestion
+requests==2.31.0
+
+# Parquet file format support (required by pandas + duckdb)
+pyarrow==15.0.2
+
+# AWS/S3-compatible Airflow provider (works with MinIO)
+apache-airflow-providers-amazon==8.20.0
