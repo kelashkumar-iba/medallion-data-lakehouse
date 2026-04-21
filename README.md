@@ -8,35 +8,7 @@
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    API[Open-Meteo API]:::ext -->|HTTP JSON| BI[bronze_ingest.py]
-    BI -->|raw Parquet| B[(Bronze<br/>MinIO)]:::storage
-    B --> BG{bronze_expectations.py<br/>11 checks}:::gate
-    BG -->|PASS| ST[silver_transform.py<br/>DuckDB dedup + cast]
-    BG -->|FAIL exit 1| STOP1[Pipeline halts<br/>Silver never runs]:::stop
-    ST -->|cleaned Parquet| S[(Silver<br/>MinIO)]:::storage
-    S --> SG{silver_expectations.py<br/>20 checks}:::gate
-    SG -->|PASS| GT[gold_transform.py<br/>3 business marts]
-    SG -->|FAIL exit 1| STOP2[Pipeline halts<br/>Gold never runs]:::stop
-    GT -->|aggregated Parquet| G[(Gold<br/>MinIO)]:::storage
-    G --> M1[city_weekly_summary]:::mart
-    G --> M2[regional_daily]:::mart
-    G --> M3[city_extremes]:::mart
-
-    AF[Airflow DAG<br/>@daily]:::orch -.->|orchestrates| BI
-    AF -.->|orchestrates| BG
-    AF -.->|orchestrates| ST
-    AF -.->|orchestrates| SG
-    AF -.->|orchestrates| GT
-
-    classDef ext fill:#f0e68c,stroke:#333,color:#000
-    classDef storage fill:#87ceeb,stroke:#333,color:#000
-    classDef gate fill:#ffb6c1,stroke:#333,color:#000
-    classDef stop fill:#ff6b6b,stroke:#333,color:#fff
-    classDef mart fill:#98fb98,stroke:#333,color:#000
-    classDef orch fill:#dda0dd,stroke:#333,color:#000
-```
+![Medallion Data Lakehouse Architecture](docs/images/architecture.png)
 
 The pipeline fetches daily weather observations for 5 cities (Karachi, Lahore, Islamabad, Mumbai, Dubai) from the Open-Meteo API every day via Airflow. Raw API responses land in the Bronze layer as Parquet on MinIO (S3-compatible object storage). A Great Expectations gate validates Bronze data — row count, schema, value ranges, temperature sanity. If Bronze passes, DuckDB window functions deduplicate overlapping ingestions in the Silver layer and cast data types to their proper form. A stricter Silver gate checks compound uniqueness and referential completeness. Finally, Gold runs three DuckDB aggregation queries that produce pre-joined business marts ready for dashboard consumption. Every layer is idempotent — scripts can be re-run safely without duplicate-key errors.
 
